@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>لوحة المدرس</title>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f2f2f2;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.box{
+  background:white;
+  padding:20px;
+  width:360px;
+  border-radius:15px;
+  box-shadow:0 0 15px rgba(0,0,0,0.1);
+}
+input{
+  width:100%;
+  padding:10px;
+  margin:6px 0;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+button{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  background:#4da6ff;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h3>👨‍🏫 إضافة بطاقة</h3>
+
+  <input id="unitName" placeholder="اسم الوحدة">
+  <input id="arabic" placeholder="الكلمة بالعربي">
+  <input id="english" placeholder="الكلمة بالإنجليزي">
+  <input type="file" id="audioFile" accept="audio/*">
+
+  <button id="addBtn">➕ إضافة البطاقة</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "...",
+  measurementId: "..."
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+// رفع الصوت للـ Firebase Storage
+async function uploadAudio(file, unitName, cardName){
+  const storageRef = ref(storage, `units/${unitName}/${cardName}.mp3`);
+  await uploadBytes(storageRef, file);
+  const url = await getDownloadURL(storageRef);
+  return url;
+}
+
+// حفظ البطاقة في Firestore
+async function addCard(){
+  const unitName = document.getElementById("unitName").value.trim();
+  const arabic = document.getElementById("arabic").value.trim();
+  const english = document.getElementById("english").value.trim();
+  const file = document.getElementById("audioFile").files[0];
+
+  if(!unitName || !arabic || !english || !file){
+    alert("⚠️ أكمل كل البيانات");
+    return;
+  }
+
+  const audioURL = await uploadAudio(file, unitName, english);
+
+  const unitRef = doc(db, "units", unitName);
+  const unitSnap = await getDoc(unitRef);
+  let cards = [];
+  if(unitSnap.exists()){
+    cards = unitSnap.data().cards || [];
+  }
+
+  cards.push({ arabic, english, audio: audioURL, results: {} });
+  await setDoc(unitRef, { cards }, { merge:true });
+  alert("✅ تم إضافة البطاقة إلى Firebase");
+}
+
+// ربط الزر بالدالة (حل مشكلة Module)
+document.getElementById("addBtn").addEventListener("click", addCard);
+</script>
+
+</body>
+</html>

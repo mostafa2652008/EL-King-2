@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>الوحدات</title>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f2f2f2;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:30px;
+}
+button{
+  width:220px;
+  padding:15px;
+  margin:10px;
+  font-size:18px;
+  border:none;
+  border-radius:10px;
+  background:#4da6ff;
+  color:white;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h2>📚 اختر الوحدة</h2>
+<div id="units"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "...",
+  measurementId: "..."
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+async function loadUnits(){
+  const unitsCol = collection(db, "units");
+  const unitsSnap = await getDocs(unitsCol);
+  const unitsDiv = document.getElementById("units");
+  unitsSnap.forEach(doc=>{
+    const btn = document.createElement("button");
+    btn.textContent = doc.id;
+    btn.onclick = ()=>{
+      localStorage.setItem("currentUnit", doc.id);
+      location.href = "cards.html";
+    };
+    unitsDiv.appendChild(btn);
+  });
+}
+
+loadUnits();
+</script>
+
+</body>
+</html>
