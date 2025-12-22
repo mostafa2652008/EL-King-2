@@ -3,62 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <title>البطاقات</title>
-
 <style>
-body{
-  font-family:Arial;
-  background:#f2f2f2;
-  height:100vh;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-}
-.card{
-  width:260px;
-  height:170px;
-  perspective:1000px;
-  cursor:pointer;
-}
-.card-inner{
-  width:100%;
-  height:100%;
-  position:relative;
-  transition:transform 0.6s;
-  transform-style:preserve-3d;
-}
-.card.flip .card-inner{
-  transform:rotateY(180deg);
-}
-.card-face{
-  position:absolute;
-  width:100%;
-  height:100%;
-  backface-visibility:hidden;
-  border-radius:18px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  font-size:24px;
-  color:white;
-}
+body{font-family:Arial;background:#f2f2f2;height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;}
+.card{width:260px;height:170px;perspective:1000px;cursor:pointer;}
+.card-inner{width:100%;height:100%;position:relative;transition:transform 0.6s;transform-style:preserve-3d;}
+.card.flip .card-inner{transform:rotateY(180deg);}
+.card-face{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:24px;color:white;}
 .front{ background:#4da6ff; }
-.back{
-  background:#2ecc71;
-  transform:rotateY(180deg);
-}
-button{
-  margin:5px;
-  padding:8px 14px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-}
-.controls{ margin-top:20px; }
+.back{ background:#2ecc71; transform:rotateY(180deg); }
+button{margin:5px;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;}
+.controls{margin-top:20px;}
 </style>
 </head>
-
 <body>
 
 <h3 id="progress"></h3>
@@ -87,24 +43,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebas
 import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "...",
-  authDomain: "...",
-  projectId: "...",
-  storageBucket: "...",
-  messagingSenderId: "...",
-  appId: "...",
-  measurementId: "..."
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_BUCKET.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const student = "student1"; // MVP
+const student = "student1"; // مؤقت للتجربة
 
 const unitName = localStorage.getItem("currentUnit");
-let cards = [];
-let index = 0;
-let audio;
-
+let cards = [], index = 0, audio;
 const front = document.getElementById("front");
 const back = document.getElementById("back");
 const cardDiv = document.getElementById("card");
@@ -136,55 +88,47 @@ function loadCard(){
 }
 
 function flipCard(){ cardDiv.classList.toggle("flip"); }
-function nextCard(){ index = (index+1) % cards.length; loadCard(); }
+function nextCard(){ index = (index+1)%cards.length; loadCard(); }
 function prevCard(){ index = (index-1+cards.length)%cards.length; loadCard(); }
 function playSound(e){ e.stopPropagation(); audio.play(); }
 
 function calculateAccuracy(spoken, correct){
-  let match = 0;
+  let match=0;
   for(let i=0;i<correct.length;i++){ if(spoken[i]===correct[i]) match++; }
-  let acc = Math.round((match/correct.length)*100);
-  return acc;
+  return Math.round((match/correct.length)*100);
 }
-function getGrade(acc){
-  if(acc>=90) return "Excellent ⭐";
-  if(acc>=75) return "Good 👍";
-  return "Poor ❌";
-}
+function getGrade(acc){ return acc>=90?"Excellent ⭐":acc>=75?"Good 👍":"Poor ❌"; }
 
 async function saveResult(cardIndex, acc, grade){
-  const unitRef = doc(db, "units", unitName);
+  const unitRef = doc(db,"units",unitName);
   const unitSnap = await getDoc(unitRef);
   if(!unitSnap.exists()) return;
   let unitCards = unitSnap.data().cards;
   unitCards[cardIndex].results[student] = { accuracy: acc, grade };
-  await updateDoc(unitRef, { cards: unitCards });
+  await updateDoc(unitRef,{cards:unitCards});
 }
 
 function showAverage(){
   let total=0, count=0;
   cards.forEach(c=>{
     if(c.results[student]){
-      total += c.results[student].accuracy;
+      total+=c.results[student].accuracy;
       count++;
     }
   });
-  avgDiv.textContent = count ? `📊 متوسط أدائك: ${Math.round(total/count)}%` : "";
+  avgDiv.textContent = count?`📊 متوسط أدائك: ${Math.round(total/count)}%`:"";
 }
 
 function startPronunciation(e){
   e.stopPropagation();
-  resultDiv.textContent = "🎙️ اسمعك...";
+  resultDiv.textContent="🎙️ اسمعك...";
   recognition.start();
-
   recognition.onresult = async (event)=>{
     const spoken = event.results[0][0].transcript.toLowerCase().trim();
     const correct = cards[index].english.toLowerCase();
     const acc = calculateAccuracy(spoken, correct);
     const grade = getGrade(acc);
-    cards[index].results[student] = { accuracy: acc, grade };
     await saveResult(index, acc, grade);
-
     resultDiv.innerHTML = `قلت: "${spoken}"<br>الصحة: ${acc}%<br>التقييم: ${grade}`;
     showAverage();
   };
@@ -192,6 +136,5 @@ function startPronunciation(e){
 
 loadCards();
 </script>
-
 </body>
 </html>
