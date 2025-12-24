@@ -1,49 +1,235 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<title>الوحدات</title>
-<style>
-body{font-family:Arial;background:#f2f2f2;display:flex;flex-direction:column;align-items:center;padding:30px;}
-button{width:220px;padding:15px;margin:10px;font-size:18px;border:none;border-radius:10px;background:#4da6ff;color:white;cursor:pointer;}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>صفحة الطالب</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA9WXBcRf8QBsRAafAcnKYVFx_kF5B0Gr0",
+      authDomain: "educate-a2aad.firebaseapp.com",
+      projectId: "educate-a2aad",
+      storageBucket: "educate-a2aad.firebasestorage.app",
+      messagingSenderId: "237633521728",
+      appId: "1:237633521728:web:1ec7e6aae3ae0711ef37a5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.db = db;
+    window.collection = collection;
+    window.getDocs = getDocs;
+  </script>
+
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 280px;
+      background: white;
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      overflow-y: auto;
+      z-index: 100;
+    }
+    .sidebar-header {
+      background: #D32F2F;
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .sidebar-menu { padding: 20px 0; }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 18px 30px;
+      color: #555;
+      text-decoration: none;
+      font-size: 18px;
+      transition: all 0.3s;
+    }
+    .menu-item:hover { background: #f0f0f0; color: #D32F2F; }
+    .menu-item.active { background: #D32F2F; color: white; font-weight: 700; }
+    .menu-icon { font-size: 28px; margin-left: 16px; }
+    .main-content {
+      padding: 40px 20px;
+      transition: margin-right 0.3s;
+    }
+    @media (min-width: 769px) {
+      .main-content {
+        margin-right: 280px;
+      }
+    }
+    .page-title {
+      text-align: center;
+      font-size: 28px;
+      font-weight: 700;
+      color: #D32F2F;
+      margin-bottom: 40px;
+    }
+    .units-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .unit-card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .unit-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+    .unit-card button {
+      width: 100%;
+      padding: 50px 20px;
+      font-size: 22px;
+      font-weight: 700;
+      background: #D32F2F;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .unit-card button:hover {
+      background: #b71c1c;
+    }
+    .no-units {
+      text-align: center;
+      font-size: 20px;
+      color: #777;
+      margin-top: 80px;
+      line-height: 1.8;
+    }
+    .bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid #eee;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+      padding: 10px 0;
+      justify-content: space-around;
+      z-index: 1000;
+    }
+    .bottom-nav a {
+      text-align: center;
+      color: #999;
+      font-size: 14px;
+      text-decoration: none;
+      flex: 1;
+    }
+    .bottom-nav a.active {
+      color: #D32F2F;
+      font-weight: 700;
+    }
+    .bottom-nav .nav-icon {
+      font-size: 28px;
+      display: block;
+      margin-bottom: 4px;
+    }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main-content { padding-bottom: 80px; }
+      .bottom-nav { display: flex; }
+      .units-grid { grid-template-columns: 1fr; gap: 20px; }
+      .unit-card button { padding: 45px 20px; font-size: 21px; }
+      .page-title { font-size: 24px; margin-bottom: 30px; }
+      .unit-card:hover { transform: none; }
+    }
+  </style>
 </head>
 <body>
-<h2>📚 اختر الوحدة</h2>
-<div id="units"></div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+  <div class="sidebar">
+    <div class="sidebar-header">📚 لوحة التحكم</div>
+    <div class="sidebar-menu">
+      <a href="index.html" class="menu-item"><span class="menu-icon">👨‍🏫</span> لوحة المدرس</a>
+      <a href="student.html" class="menu-item active"><span class="menu-icon">👨‍🎓</span> صفحة الطالب</a>
+      <a href="cards.html" class="menu-item"><span class="menu-icon">🃏</span> البطاقات</a>
+    </div>
+  </div>
 
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_BUCKET.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+  <div class="bottom-nav">
+    <a href="index.html"><span class="nav-icon">👨‍🏫</span> لوحة المدرس</a>
+    <a href="student.html" class="active"><span class="nav-icon">👨‍🎓</span> الطالب</a>
+    <a href="cards.html"><span class="nav-icon">🃏</span> البطاقات</a>
+  </div>
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+  <div class="main-content">
+    <h1 class="page-title">📚 اختر الوحدة</h1>
+    <div class="units-grid" id="units"></div>
+    <div class="no-units" id="noUnitsMsg" style="display:none;">
+      لا توجد وحدات متاحة حالياً 😔<br>
+      اطلب من المدرس إضافة وحدات جديدة
+    </div>
+  </div>
 
-async function loadUnits(){
-  const unitsCol = collection(db, "units");
-  const unitsSnap = await getDocs(unitsCol);
-  const unitsDiv = document.getElementById("units");
-  unitsSnap.forEach(doc=>{
-    const btn = document.createElement("button");
-    btn.textContent = doc.id;
-    btn.onclick = ()=>{
-      localStorage.setItem("currentUnit", doc.id);
-      location.href = "cards.html";
-    };
-    unitsDiv.appendChild(btn);
-  });
-}
+  <script>
+    async function loadUnits() {
+      const container = document.getElementById("units");
+      const noUnitsMsg = document.getElementById("noUnitsMsg");
 
-loadUnits();
-</script>
+      try {
+        const querySnapshot = await getDocs(collection(db, "units"));
+
+        if (querySnapshot.empty) {
+          noUnitsMsg.style.display = "block";
+          return;
+        }
+
+        querySnapshot.forEach((docSnap) => {
+          const unit = docSnap.data();
+          const unitId = docSnap.id;
+
+          const card = document.createElement("div");
+          card.className = "unit-card";
+
+          const btn = document.createElement("button");
+          btn.textContent = unit.unitName;
+
+          btn.onclick = () => {
+            localStorage.setItem("currentUnitId", unitId);
+            location.href = "cards.html";
+          };
+
+          card.appendChild(btn);
+          container.appendChild(card);
+        });
+      } catch (error) {
+        console.error("Error loading units:", error);
+        noUnitsMsg.textContent = "حدث خطأ أثناء تحميل الوحدات";
+        noUnitsMsg.style.display = "block";
+      }
+    }
+
+    loadUnits();
+  </script>
 </body>
 </html>
