@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-  <!-- Firebase + المنطق كله داخل module -->
+  <!-- Firebase + الكود كله داخل module -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
@@ -44,7 +44,7 @@
     const recognition = SpeechRecognition ? new SpeechRecognition() : null;
     if (recognition) recognition.lang = "en-US";
 
-    // دوال مساعدة
+    // الدوال المساعدة
     function updateProgress() {
       if (cards.length === 0) return;
       const percent = ((index + 1) / cards.length) * 100;
@@ -144,10 +144,10 @@
       };
     }
 
-    // تحميل الوحدة
+    // تحميل الوحدة + إضافة كل الـ event listeners
     async function loadUnit() {
       if (!unitId) {
-        document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;color:#D32F2F;'>⚠️ اختر وحدة أولاً من صفحة الطالب</h2>";
+        document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;color:#D32F2F;'>⚠️ اختر وحدة أولاً</h2>";
         return;
       }
 
@@ -171,7 +171,7 @@
 
         loadCard();
 
-        // إضافة event listeners بعد تحميل البطاقة
+        // إضافة كل الأحداث بعد تحميل البيانات
         cardDiv.addEventListener("click", flipCard);
 
         const soundBtn = document.querySelector('.back-buttons button:first-child');
@@ -180,26 +180,22 @@
         if (soundBtn) soundBtn.addEventListener("click", playSound);
         if (micBtn) micBtn.addEventListener("click", startPronunciation);
 
+        // الأسهم (prev/next)
+        document.getElementById("prevBtn")?.addEventListener("click", prevCard);
+        document.getElementById("nextBtn")?.addEventListener("click", nextCard);
+
       } catch (error) {
         console.error("Error loading unit:", error);
         document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;color:#D32F2F;'>حدث خطأ أثناء التحميل</h2>";
       }
     }
 
-    // تشغيل عند تحميل الصفحة
     document.addEventListener("DOMContentLoaded", loadUnit);
   </script>
 
   <style>
-    body {
-      font-family: 'Tajawal', sans-serif;
-      background: #f5f5f5;
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-      display: flex;
-    }
-    /* باقي الـ CSS الخاص بك كاملاً هنا (كما في النسخة الأصلية) */
+    /* الـ CSS الأصلي كاملاً (ما تغيرش) */
+    body { font-family: 'Tajawal', sans-serif; background: #f5f5f5; margin: 0; padding: 0; min-height: 100vh; display: flex; }
     .sidebar { width: 280px; background: white; box-shadow: 4px 0 20px rgba(0,0,0,0.1); position: fixed; top: 0; bottom: 0; right: 0; overflow-y: auto; z-index: 100; }
     .sidebar-header { background: #D32F2F; color: white; padding: 30px 20px; text-align: center; font-size: 22px; font-weight: 700; }
     .sidebar-menu { padding: 20px 0; }
@@ -242,6 +238,7 @@
 </head>
 <body>
 
+  <!-- Sidebar -->
   <div class="sidebar">
     <div class="sidebar-header">📚 لوحة التحكم</div>
     <div class="sidebar-menu">
@@ -251,9 +248,11 @@
     </div>
   </div>
 
+  <!-- Main Content -->
   <div class="main-content">
     <h2 class="unit-title" id="unitTitle"></h2>
     <h3 id="progress"></h3>
+
     <div class="card-container">
       <div class="card" id="card">
         <div class="card-face front" id="front"></div>
@@ -273,24 +272,18 @@
         </div>
       </div>
     </div>
+
     <div class="progress-bar">
       <div class="progress-fill" id="progressFill"></div>
     </div>
+
     <div class="controls">
       <button id="prevBtn"><i class="fas fa-chevron-left"></i></button>
       <button id="nextBtn"><i class="fas fa-chevron-right"></i></button>
     </div>
+
     <h4 id="average"></h4>
   </div>
-
-  <!-- جسر للأزرار التي تحتاج تُستدعى من HTML -->
-  <script>
-    // هذه الدوال تُستدعى من الأزرار في HTML
-    document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("prevBtn")?.addEventListener("click", prevCard);
-      document.getElementById("nextBtn")?.addEventListener("click", nextCard);
-    });
-  </script>
 
 </body>
 </html>
