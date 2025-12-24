@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK + الكود كله داخل module واحد -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
@@ -24,13 +24,163 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    window.db = db;
-    window.doc = doc;
-    window.getDoc = getDoc;
-    window.updateDoc = updateDoc;
+    // المتغيرات العامة
+    const student = "student1";
+    let cards = [];
+    let index = 0;
+    let audio;
+    const unitId = localStorage.getItem("currentUnitId");
+
+    const unitTitle = document.getElementById("unitTitle");
+    const front = document.getElementById("front");
+    const back = document.getElementById("back");
+    const cardDiv = document.getElementById("card");
+    const resultDiv = document.getElementById("result");
+    const progress = document.getElementById("progress");
+    const progressFill = document.getElementById("progressFill");
+    const avgDiv = document.getElementById("average");
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+    if (recognition) recognition.lang = "en-US";
+
+    // تحميل الوحدة
+    async function loadUnit() {
+      if (!unitId) {
+        document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;color:#D32F2F;'>⚠️ اختر وحدة أولاً من صفحة الطالب</h2>";
+        return;
+      }
+
+      try {
+        const unitRef = doc(db, "units", unitId);
+        const unitSnap = await getDoc(unitRef);
+
+        if (!unitSnap.exists()) {
+          document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;color:#D32F2F;'>⚠️ الوحدة غير موجودة</h2>";
+          return;
+        }
+
+        const data = unitSnap.data();
+        cards = data.cards || [];
+        unitTitle.textContent = data.unitName || "وحدة غير معروفة";
+
+        if (cards.length === 0) {
+          progress.textContent = "لا توجد بطاقات في هذه الوحدة";
+          return;
+        }
+
+        loadCard();
+      } catch (error) {
+        console.error("Error loading unit:", error);
+        document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;color:#D32F2F;'>حدث خطأ أثناء التحميل</h2>";
+      }
+    }
+
+    function updateProgress() {
+      if (cards.length === 0) return;
+      const percent = ((index + 1) / cards.length) * 100;
+      progressFill.style.width = percent + "%";
+      progress.textContent = `البطاقة ${index + 1} من ${cards.length}`;
+    }
+
+    function loadCard() {
+      if (cards.length === 0) return;
+      cardDiv.classList.remove("flip");
+      front.textContent = cards[index].arabic;
+      back.textContent = cards[index].english;
+      audio = new Audio(cards[index].audio);
+      resultDiv.textContent = "";
+      updateProgress();
+    }
+
+    function flipCard() {
+      cardDiv.classList.toggle("flip");
+    }
+
+    function nextCard() {
+      index = (index + 1) % cards.length;
+      loadCard();
+    }
+
+    function prevCard() {
+      index = (index - 1 + cards.length) % cards.length;
+      loadCard();
+    }
+
+    function playSound(e) {
+      e.stopPropagation();
+      if (audio) audio.play();
+    }
+
+    function calculateAccuracy(spoken, correct) {
+      spoken = spoken.toLowerCase().trim();
+      correct = correct.toLowerCase().trim();
+      if (spoken === correct) return 100;
+
+      let match = 0;
+      for (let i = 0; i < Math.min(spoken.length, correct.length); i++) {
+        if (spoken[i] === correct[i]) match++;
+      }
+      return Math.round((match / correct.length) * 100);
+    }
+
+    function getGrade(acc) {
+      if (acc >= 90) return "ممتاز ⭐";
+      if (acc >= 75) return "جيد 👍";
+      return "يحتاج تحسين ❌";
+    }
+
+    async function startPronunciation(e) {
+      if (!recognition) {
+        resultDiv.textContent = "المتصفح لا يدعم التعرف على الصوت";
+        return;
+      }
+
+      e.stopPropagation();
+      resultDiv.textContent = "🎙️ جاري الاستماع...";
+      recognition.start();
+
+      recognition.onresult = async (event) => {
+        const spoken = event.results[0][0].transcript.trim();
+        const correct = cards[index].english;
+        const acc = calculateAccuracy(spoken, correct);
+        const grade = getGrade(acc);
+
+        try {
+          const unitRef = doc(db, "units", unitId);
+          const field = `cards.${index}.results.${student}`;
+
+          await updateDoc(unitRef, {
+            [field]: {
+              accuracy: acc,
+              grade,
+              spoken,
+              timestamp: new Date().toISOString()
+            }
+          });
+
+          resultDiv.innerHTML = `
+            قلت: "<strong>${spoken}</strong>"<br>
+            الدقة: <strong>${acc}%</strong><br>
+            التقييم: <strong>${grade}</strong>
+          `;
+        } catch (error) {
+          console.error("Error saving result:", error);
+          resultDiv.textContent = "خطأ في حفظ النتيجة";
+        }
+      };
+
+      recognition.onerror = () => {
+        resultDiv.textContent = "❌ خطأ في التعرف على الصوت، جرب تاني";
+      };
+    }
+
+    // تحميل الوحدة عند فتح الصفحة
+    document.addEventListener("DOMContentLoaded", loadUnit);
   </script>
 
   <style>
+    /* الـ CSS الأصلي الخاص بك كاملاً */
     body {
       font-family: 'Tajawal', sans-serif;
       background: #f5f5f5;
@@ -267,155 +417,5 @@
     <h4 id="average"></h4>
   </div>
 
-  <script>
-    const student = "student1";
-    let cards = [];
-    let index = 0;
-    let audio;
-    const unitId = localStorage.getItem("currentUnitId");
-
-    const unitTitle = document.getElementById("unitTitle");
-    const front = document.getElementById("front");
-    const back = document.getElementById("back");
-    const cardDiv = document.getElementById("card");
-    const resultDiv = document.getElementById("result");
-    const progress = document.getElementById("progress");
-    const progressFill = document.getElementById("progressFill");
-    const avgDiv = document.getElementById("average");
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = SpeechRecognition ? new SpeechRecognition() : null;
-    if (recognition) recognition.lang = "en-US";
-
-    async function loadUnit() {
-      if (!unitId) {
-        document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;color:#D32F2F;'>⚠️ اختر وحدة أولاً من صفحة الطالب</h2>";
-        return;
-      }
-
-      try {
-        const unitRef = doc(db, "units", unitId);
-        const unitSnap = await getDoc(unitRef);
-
-        if (!unitSnap.exists()) {
-          document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;color:#D32F2F;'>⚠️ الوحدة غير موجودة</h2>";
-          return;
-        }
-
-        const data = unitSnap.data();
-        cards = data.cards || [];
-        unitTitle.textContent = data.unitName || "وحدة غير معروفة";
-
-        if (cards.length === 0) {
-          progress.textContent = "لا توجد بطاقات في هذه الوحدة";
-          return;
-        }
-
-        loadCard();
-      } catch (error) {
-        console.error("Error loading unit:", error);
-        document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;color:#D32F2F;'>حدث خطأ أثناء التحميل</h2>";
-      }
-    }
-
-    function updateProgress() {
-      if (cards.length === 0) return;
-      const percent = ((index + 1) / cards.length) * 100;
-      progressFill.style.width = percent + "%";
-      progress.textContent = `البطاقة ${index + 1} من ${cards.length}`;
-    }
-
-    function loadCard() {
-      if (cards.length === 0) return;
-      cardDiv.classList.remove("flip");
-      front.textContent = cards[index].arabic;
-      back.textContent = cards[index].english;
-      audio = new Audio(cards[index].audio);
-      resultDiv.textContent = "";
-      updateProgress();
-    }
-
-    function flipCard() {
-      cardDiv.classList.toggle("flip");
-    }
-
-    function nextCard() {
-      index = (index + 1) % cards.length;
-      loadCard();
-    }
-
-    function prevCard() {
-      index = (index - 1 + cards.length) % cards.length;
-      loadCard();
-    }
-
-    function playSound(e) {
-      e.stopPropagation();
-      if (audio) audio.play();
-    }
-
-    function calculateAccuracy(spoken, correct) {
-      spoken = spoken.toLowerCase().trim();
-      correct = correct.toLowerCase().trim();
-      if (spoken === correct) return 100;
-      let match = 0;
-      for (let i = 0; i < Math.min(spoken.length, correct.length); i++) {
-        if (spoken[i] === correct[i]) match++;
-      }
-      return Math.round((match / correct.length) * 100);
-    }
-
-    function getGrade(acc) {
-      if (acc >= 90) return "ممتاز ⭐";
-      if (acc >= 75) return "جيد 👍";
-      return "يحتاج تحسين ❌";
-    }
-
-    async function startPronunciation(e) {
-      if (!recognition) {
-        resultDiv.textContent = "المتصفح لا يدعم التعرف على الصوت";
-        return;
-      }
-      e.stopPropagation();
-      resultDiv.textContent = "🎙️ جاري الاستماع...";
-      recognition.start();
-
-      recognition.onresult = async (event) => {
-        const spoken = event.results[0][0].transcript.trim();
-        const correct = cards[index].english;
-        const acc = calculateAccuracy(spoken, correct);
-        const grade = getGrade(acc);
-
-        try {
-          const unitRef = doc(db, "units", unitId);
-          const field = `cards.${index}.results.${student}`;
-
-          await updateDoc(unitRef, {
-            [field]: {
-              accuracy: acc,
-              grade,
-              spoken,
-              timestamp: new Date().toISOString()
-            }
-          });
-
-          resultDiv.innerHTML = `
-            قلت: "<strong>${spoken}</strong>"<br>
-            الدقة: <strong>${acc}%</strong><br>
-            التقييم: <strong>${grade}</strong>
-          `;
-        } catch (error) {
-          console.error("Error saving result:", error);
-          resultDiv.textContent = "خطأ في حفظ النتيجة";
-        }
-      };
-
-      recognition.onerror = () => {
-        resultDiv.textContent = "❌ خطأ في التعرف على الصوت، جرب تاني";
-      };
-    }
-
-    loadUnit();
-  </script>
 </body>
 </html>
